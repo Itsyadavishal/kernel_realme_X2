@@ -53,7 +53,7 @@
 #include <linux/uaccess.h>
 #include <linux/siphash.h>
 #include <linux/uio.h>
-#include <crypto/chacha20.h>
+#include <crypto/chacha.h>
 #include <crypto/blake2s.h>
 #include <asm/processor.h>
 #include <asm/irq.h>
@@ -85,7 +85,6 @@ static DECLARE_WAIT_QUEUE_HEAD(crng_init_wait);
 static struct fasync_struct *fasync;
 static DEFINE_SPINLOCK(random_ready_chain_lock);
 static RAW_NOTIFIER_HEAD(random_ready_chain);
-
 static DEFINE_SPINLOCK(random_ready_list_lock);
 static LIST_HEAD(random_ready_list);
 
@@ -123,7 +122,7 @@ static struct ratelimit_state unseeded_warning =
 
 /* Control how we warn userspace. */
 static struct ratelimit_state urandom_warning =
-	RATELIMIT_STATE_INIT("warn_urandom_randomness", HZ, 3);
+	RATELIMIT_STATE_INIT_FLAGS("urandom_warning", HZ, 3, RATELIMIT_MSG_ON_RELEASE);
 static int ratelimit_disable __read_mostly =
 	IS_ENABLED(CONFIG_WARN_ALL_UNSEEDED_RANDOM);
 module_param_named(ratelimit_disable, ratelimit_disable, int, 0644);
@@ -183,7 +182,6 @@ int __cold register_random_ready_notifier(struct notifier_block *nb)
 	unsigned long flags;
 	int ret = -EALREADY;
 
-<<<<<<< HEAD
 	if (!spin_trylock_irqsave(&primary_crng.lock, flags))
 		return 0;
 	if (crng_init != 0) {
@@ -387,10 +385,9 @@ static ssize_t extract_crng_user(void __user *buf, size_t nbytes)
 
 	/* Wipe data just written to memory */
 	memzero_explicit(tmp, sizeof(tmp));
-=======
 	if (crng_ready())
 		return ret;
->>>>>>> v4.14.285
+>>>>>>> stable/android-4.14-stable
 
 	spin_lock_irqsave(&random_ready_chain_lock, flags);
 	if (!crng_ready())
@@ -675,7 +672,6 @@ static void _get_random_bytes(void *buf, size_t len)
  */
 void get_random_bytes(void *buf, size_t len)
 {
-<<<<<<< HEAD
 	__u8 tmp[CHACHA_BLOCK_SIZE] __aligned(4);
 
 	trace_get_random_bytes(nbytes, _RET_IP_);
@@ -701,10 +697,6 @@ void get_random_bytes(void *buf, int nbytes)
 
 	warn_unseeded_randomness(&previous);
 	_get_random_bytes(buf, nbytes);
-=======
-	warn_unseeded_randomness();
-	_get_random_bytes(buf, len);
->>>>>>> v4.14.285
 }
 EXPORT_SYMBOL(get_random_bytes);
 
@@ -1265,7 +1257,7 @@ void add_interrupt_randomness(int irq)
 	if (new_count & MIX_INFLIGHT)
 		return;
 
-	if (new_count < 64 && !time_is_before_jiffies(fast_pool->last + HZ))
+	if (new_count < 1024 && !time_is_before_jiffies(fast_pool->last + HZ))
 		return;
 
 	if (unlikely(!fast_pool->mix.func))
@@ -1784,7 +1776,6 @@ struct ctl_table random_table[] = {
 	},
 	{ }
 };
-<<<<<<< HEAD
 #endif 	/* CONFIG_SYSCTL */
 
 struct batched_entropy {
@@ -1934,6 +1925,4 @@ void add_hwgenerator_randomness(const char *buffer, size_t count,
 	credit_entropy_bits(poolp, entropy);
 }
 EXPORT_SYMBOL_GPL(add_hwgenerator_randomness);
-=======
 #endif	/* CONFIG_SYSCTL */
->>>>>>> v4.14.285
